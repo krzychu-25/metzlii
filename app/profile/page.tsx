@@ -1,7 +1,7 @@
 // app/profile/page.tsx
 "use client"
 import { useState } from "react"
-import { db, auth } from "../../firebase"
+import { auth, db } from "@/lib/firebase";
 import { doc, setDoc } from "firebase/firestore"
 import { useRouter } from "next/navigation"
 
