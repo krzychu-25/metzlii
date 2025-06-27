@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://metzlii.com/sitemap.xml
