@@ -1,33 +1,36 @@
-// app/profile/page.tsx
-"use client"
+'use client'
+import { useSession } from "next-auth/react"
 import { useState } from "react"
-import { auth, db } from "@/lib/firebase";
-import { doc, setDoc } from "firebase/firestore"
 import { useRouter } from "next/navigation"
 
-export default function ProfileSetup() {
-  const router = useRouter()
+export default function ProfilePage() {
+  const { data: session } = useSession()
   const [name, setName] = useState("")
-  const [interests, setInterests] = useState("")
-  
-  const handleSave = async () => {
-    const user = auth.currentUser
-    if (!user) return
+  const [tags, setTags] = useState("")
+  const router = useRouter()
 
-    const tags = interests.split(",").map(tag => tag.trim().toLowerCase())
-    await setDoc(doc(db, "users", user.uid), {
-      name,
-      interests: tags
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    await fetch("/api/profile", {
+      method: "POST",
+      body: JSON.stringify({ name, tags }),
+      headers: { "Content-Type": "application/json" }
     })
+
     router.push("/")
   }
 
+  if (!session) return <p>Logowanie wymagane...</p>
+
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-bold">Twój profil</h1>
-      <input placeholder="Imię" value={name} onChange={e => setName(e.target.value)} className="block my-2" />
-      <input placeholder="Zainteresowania (np. muzyka, kodowanie)" value={interests} onChange={e => setInterests(e.target.value)} className="block my-2" />
-      <button onClick={handleSave} className="bg-green-500 text-white p-2 rounded">Zapisz</button>
-    </div>
+    <main className="flex flex-col items-center justify-center min-h-screen">
+      <h1 className="text-2xl font-bold mb-4">Twój profil</h1>
+      <form onSubmit={handleSave} className="flex flex-col gap-2 w-64">
+        <input type="text" placeholder="Imię" required value={name} onChange={e => setName(e.target.value)} className="input" />
+        <input type="text" placeholder="Tagi zainteresowań (np. muzyka,gry,koty)" required value={tags} onChange={e => setTags(e.target.value)} className="input" />
+        <button type="submit" className="btn">Zapisz</button>
+      </form>
+    </main>
   )
 }
