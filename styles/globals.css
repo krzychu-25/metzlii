@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: 'Arial', sans-serif;
+.input {
+  @apply px-3 py-2 border rounded;
+}
+
+.btn {
+  @apply bg-blue-600 text-white py-2 rounded hover:bg-blue-700;
 }
