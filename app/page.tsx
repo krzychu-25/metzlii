@@ -1,79 +1,48 @@
-"use client"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import { prisma } from "@/lib/prisma"
+import MatchCard from "@/components/MatchCard"
+import Navbar from "@/components/Navbar"
 
-import { useEffect, useState } from "react"
-import { auth, db } from "@/lib/firebase"
-import { onAuthStateChanged, signOut } from "firebase/auth"
-import { collection, getDocs } from "firebase/firestore"
+export default async function HomePage() {
+  const session = await getServerSession(authOptions)
 
-type UserData = {
-  name: string
-  interests: string[]
-}
+  if (!session || !session.user?.id) {
+    return <main className="p-8 text-center">Zaloguj się, aby zobaczyć dopasowania.</main>
+  }
 
-export default function Home() {
-  const [user, setUser] = useState<any>(null)
-  const [matches, setMatches] = useState<UserData[]>([])
-  const [loading, setLoading] = useState(true)
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.user.id }
+  })
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user)
-      if (user) {
-        try {
-          const snapshot = await getDocs(collection(db, "users"))
-          const currentUserDoc = snapshot.docs.find(doc => doc.id === user.uid)
-          const currentUser = currentUserDoc?.data() as UserData
+  const others = await prisma.user.findMany({
+    where: {
+      id: { not: session.user.id }
+    }
+  })
 
-          if (!currentUser) return setMatches([])
-
-          const others = snapshot.docs
-            .filter(doc => doc.id !== user.uid)
-            .map(doc => doc.data() as UserData)
-
-          const common = others.filter(other =>
-            other.interests?.some(tag => currentUser.interests?.includes(tag))
-          )
-
-          setMatches(common)
-        } catch (error) {
-          console.error("Błąd ładowania danych:", error)
-        }
-      }
-      setLoading(false)
+  const matches = others
+    .map(user => {
+      const sharedTags = user.tags.filter(tag => currentUser?.tags.includes(tag))
+      return { ...user, sharedTags }
     })
-
-    return () => unsubscribe()
-  }, [])
-
-  if (loading) return <p>Ładowanie...</p>
-  if (!user) return <p>Proszę się <a href="/login" className="text-blue-500 underline">zalogować</a>.</p>
+    .filter(user => user.sharedTags.length > 0)
 
   return (
-    <main className="p-4 max-w-2xl mx-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Dopasowani użytkownicy</h1>
-        <button
-          onClick={() => signOut(auth)}
-          className="bg-red-500 text-white px-4 py-2 rounded"
-        >
-          Wyloguj
-        </button>
+    <main>
+      <Navbar />
+      <div className="p-8">
+        <h1 className="text-2xl font-bold mb-4">Dopasowania</h1>
+        {matches.length === 0 ? (
+          <p>Brak dopasowań. Dodaj zainteresowania w profilu.</p>
+        ) : (
+          <div className="grid gap-4">
+            {matches.map(match => (
+              <MatchCard key={match.id} user={match} />
+            ))}
+          </div>
+        )}
       </div>
-
-      {matches.length === 0 ? (
-        <p className="text-gray-600">Nie znaleziono dopasowań. Dodaj więcej zainteresowań!</p>
-      ) : (
-        <ul>
-          {matches.map((m, i) => (
-            <li key={i} className="border p-4 mt-2 rounded bg-white shadow">
-              <p className="font-semibold">{m.name}</p>
-              <p className="text-sm text-gray-600">
-                Zainteresowania: {m.interests?.join(", ")}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
     </main>
   )
 }
