@@ -1,5 +1,3 @@
-import prisma from '@/lib/prisma';
-import { authOptions } from '@/lib/auth';
 {
   "compilerOptions": {
     "target": "es5",
