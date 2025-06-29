@@ -1,5 +1,6 @@
 // app/api/auth/[...nextauth]/route.ts
 import NextAuth from "next-auth";
+import { authOptions } from "@/lib/auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth";
