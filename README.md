@@ -1,3 +1,0 @@
-# Metzlii
-
-MVP aplikacji społecznościowej.
