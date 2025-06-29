@@ -1,3 +1,4 @@
+// next.config.js
 const path = require('path');
 
 /** @type {import('next').NextConfig} */
@@ -6,7 +7,17 @@ const nextConfig = {
     config.resolve.alias['@'] = path.resolve(__dirname);
     return config;
   },
-  // inne opcje
+  reactStrictMode: true,
 };
 
 module.exports = nextConfig;
+
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    },
+    // inne opcje jeśli masz
+  }
+}
