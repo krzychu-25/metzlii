@@ -1,11 +1,44 @@
-// lib/auth.ts
-import bcrypt from "bcrypt";
+import NextAuth from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import prisma from './prisma';
 
-export async function hashPassword(password: string) {
-  const saltRounds = 10;
-  return bcrypt.hash(password, saltRounds);
-}
+export const authOptions = {
+  providers: [
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials) return null;
 
-export async function verifyPassword(password: string, hash: string) {
-  return bcrypt.compare(password, hash);
-}
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email }
+        });
+
+        if (user && credentials.password === user.password) { 
+          // Uwaga! W produkcji hasła trzeba hashować i porównywać z bcrypt!
+          return user;
+        }
+        return null;
+      }
+    })
+  ],
+  session: {
+    strategy: 'jwt'
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) token.id = user.id;
+      return token;
+    },
+    async session({ session, token }) {
+      if (token) session.user.id = token.id;
+      return session;
+    }
+  }
+};
+
+const handler = NextAuth(authOptions);
+export { handler as GET, handler as POST };
