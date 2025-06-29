@@ -1,7 +1,7 @@
 // app/profile/page.tsx
 import { getServerSession } from "next-auth";
 import { authOptions } from "../api/auth/[...nextauth]/route";
-import { prisma } from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
 export default async function Profile() {
