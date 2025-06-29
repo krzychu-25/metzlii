@@ -1,43 +1,42 @@
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import prisma from "./prisma";
-import GoogleProvider from "next-auth/providers/google";
+// lib/auth.ts
+import { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
-export const authOptions = {
-  adapter: PrismaAdapter(prisma),
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-    }),
-  ],
-  // inne opcje NextAuth
-};
-
-export const authOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
-      name: 'Credentials',
+      name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials) return null;
+        if (!credentials?.email || !credentials?.password) return null;
 
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email }
+          where: { email: credentials.email },
         });
 
-        if (user && credentials.password === user.password) { 
-          // Uwaga! W produkcji hasła trzeba hashować i porównywać z bcrypt!
-          return user;
-        }
-        return null;
-      }
-    })
+        if (!user || !user.password) return null;
+
+        const isValid = await bcrypt.compare(
+          credentials.password,
+          user.password
+        );
+
+        if (!isValid) return null;
+
+        return { id: user.id + "", email: user.email };
+      },
+    }),
   ],
+  pages: {
+    signIn: "/login",
+  },
   session: {
-    strategy: 'jwt'
+    strategy: "jwt",
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -47,9 +46,6 @@ export const authOptions = {
     async session({ session, token }) {
       if (token) session.user.id = token.id;
       return session;
-    }
-  }
+    },
+  },
 };
-
-const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };
